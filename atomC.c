@@ -10,7 +10,6 @@ enum{ID,CT_INT, CT_REAL, COMMA, SEMICOLON, LPAR, RPAR, LBRACKET,
 	EQUAL, NOTEQ, LESS, LESSEQ, GREATER, GREATEREQ, CT_CHAR, CT_STRING,
 	BREAK, CHAR, DOUBLE, ELSE, FOR, IF, INT, RETURN, STRUCT, VOID, WHILE,
 	LINECOMMENT};
-
 char *stringAtoms[] = {"ID","CT_INT", "CT_REAL", "COMMA", "SEMICOLON", "LPAR",
 	"RPAR", "LBRACKET", "RBRACKET", "LACC", "RACC", "END", "ADD", "SUB", "MUL", "DIV",
 	"DOT", "OR", "AND", "NOT", "ASSIGN", "EQUAL", "NOTEQ", "LESS", "LESSEQ", "GREATER",
@@ -257,6 +256,7 @@ int getNextToken()
 			}
 			else
 				tkerr(addTk(END), "este nevoie macar de o cifra dupa punct");
+		break;
 		case 4:
 			if(ch>='0' && ch<='9')
 				pCrtCh++;
@@ -265,19 +265,21 @@ int getNextToken()
 				state = 5;
 			}else
 				state = 8;
-
+		break;
 		case 5:
 			if(ch == '+' || ch == '-'){
 				pCrtCh++;
 				state = 6;
 			}else
 				state = 6;
+		break;
 		case 6:
 			if(ch>='0' && ch<='9'){
 				pCrtCh++;
 				state = 7;
 			}else
 				state = 8;
+		break;
 		case 7:
 			if(ch>='0' && ch<='9'){
 				pCrtCh++;
@@ -285,6 +287,7 @@ int getNextToken()
 			}
 			else
 				state = 8;
+		break;		
 		case 8:
 			nCh = pCrtCh - pStartCh;
 			tk=addTk(CT_REAL);
@@ -292,38 +295,23 @@ int getNextToken()
 			tk->r=atof(aux);
 			free(aux);
 			return tk->code;
-		case 9:
-			if(ch == '+' || ch == '-'){
-				pCrtCh++;
-				state = 10;
-			}else
-				state = 10;
-		case 10:
-			if(ch>='0' && ch<='9'){
-				pCrtCh++;
-				state = 11;
-			}else
-				tkerr(addTk(END), "este nevoie macar de o cifra dupa starea 10");
-		case 11:
-			if(ch >= '0' && ch<= '9')
-				pCrtCh++;
-			else
-				state = 8;
 		case 12:
 			if(ch != '\''){
 				pCrtCh++;
 				state = 13;
 			}else
 				tkerr(addTk(END), "CHAR nu poate contine caracterul [']");
+		break;
 		case 13:
-			if(ch != '\'')
+			if(ch == '\'')
 				state = 14;
 			else
 				tkerr(addTk(END), "CHAR nu poate avea mai mult de un caracter");
+		break;
 		case 14:
 			tk = addTk(CT_CHAR);
-			tk->i = ch;
-			pCrtCh += 2;
+			tk->i = *(pCrtCh-1);
+			pCrtCh++;
 			return tk->code;
 		case 15:
 			if(ch != '"'){	
@@ -364,7 +352,6 @@ int getNextToken()
 		case 24:
 			addTk(RACC);
 			return RACC;
-		case 25:
 		case 26:
 			addTk(ADD);
 			return ADD;
@@ -386,6 +373,7 @@ int getNextToken()
 				state = 32;
 			}else
 				tkerr(addTk(END), "Se astepta al doilea caracter '&'");
+		break;
 		case 32:
 			addTk(AND);
 			return AND;
@@ -395,6 +383,7 @@ int getNextToken()
 				state = 34;
 			}else
 				tkerr(addTk(END), "Se astepta al doilea caracter '|'");
+		break;
 		case 34:
 			addTk(OR);
 			return OR;
@@ -404,6 +393,7 @@ int getNextToken()
 				state = 37;
 			}else
 				state = 36;
+		break;		
 		case 36:
 			addTk(NOT);
 			return NOT;
@@ -419,17 +409,18 @@ int getNextToken()
 				state=40;
 			break;
 		case 39:
-			addTk(ASSIGN);
-			return ASSIGN;
-		case 40:
 			addTk(EQUAL);
 			return EQUAL;
+		case 40:
+			addTk(ASSIGN);
+			return ASSIGN;
 		case 41:
 			if(ch == '='){
 				pCrtCh++;
 				state = 43;
 			}else
 				state = 42;
+		break;
 		case 42:
 			addTk(LESS);
 			return LESS;
@@ -442,13 +433,13 @@ int getNextToken()
 				state = 46;
 			}else
 				state = 45;
+		break;
 		case 45:
 			addTk(GREATER);
 			return GREATER;
 		case 46:
 			addTk(GREATEREQ);
 			return GREATEREQ;
-		case 47:
 		case 48:
 			if(ch == '/'){
 				pCrtCh++;
