@@ -32,7 +32,7 @@ typedef struct _Token{
 
 Token* tokens = NULL;
 Token* lastToken = NULL;
-int globalLine = 0;
+int globalLine = 1;
 char buffer[4097];
 char *pCrtCh = buffer;
 
@@ -324,9 +324,9 @@ int getNextToken()
 				
 		break;
 		case 16:
-			nCh = pCrtCh - pStartCh;
+			nCh = (pCrtCh + 1) - (pStartCh - 1);
 			tk=addTk(CT_STRING);
-			tk->text= createString(pStartCh,pCrtCh);
+			tk->text= createString(pStartCh + 1,pCrtCh - 1);
 			return tk->code;
 		case 17:
 			addTk(COMMA);
@@ -446,7 +446,7 @@ int getNextToken()
 				state = 50;
 			}else
 				state = 29;
-		case 49:
+
 		case 50:
 			if(ch != '\n'){
 				pCrtCh++; 					// consuma caracterul si ramane in starea 0
@@ -458,8 +458,8 @@ int getNextToken()
 			}		
 		break;
 		case 51:
-			addTk(LINECOMMENT);
-			return LINECOMMENT;
+			state = 0;
+		break;
 		case 52:
 			if((ch >= 'A' && ch <= 'Z') || (ch>='a' && ch <= 'z') || ch=='_')
 				pCrtCh++;
