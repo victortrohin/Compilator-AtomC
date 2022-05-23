@@ -16,7 +16,7 @@ bool consume(int code){
 
 
 
-
+//unit: ( structDef | fnDef | varDef )* END
 bool unit(){
     for(;;){ // buclă infinită
         if(structDef()){}
@@ -37,7 +37,8 @@ bool structDef(){
             if(consume(LACC)){
                 for(;;){
                     if(varDef()){}
-                    else break;
+                    else 
+                        break;
                 }
                 if(consume(END)){
                     if (consume(RACC)){
@@ -59,12 +60,10 @@ bool varDef(){
     if(typeBase()){
         if(consume(ID)){
             if(arrayDecl()){
-                if(consume(SEMICOLON)){
-                   return true;
-                }
-            }else if(consume(SEMICOLON)){
-                return true;
             }
+            if(consume(SEMICOLON)){
+                    return true;
+                }
         }
     }
     
@@ -96,11 +95,9 @@ bool typeBase(){
 bool arrayDecl(){
     if(consume(LBRACKET)){
         if(consume(CT_INT)){
-            if(consume(RBRACKET)){
+        }
+        if(consume(RBRACKET)){
                 return true;
-            }else if(consume(RBRACKET)){
-                return true;
-            }
         }
     }
 
@@ -181,6 +178,12 @@ bool stm(){
             if(expr()){
                 if(consume(RPAR)){
                     if(stm()){
+                        if(consume(ELSE)){
+                            if(stm()){
+                                return true;
+                            }
+                        }
+
                         return true;
                     }
                 }
@@ -203,44 +206,21 @@ bool stm(){
     if(consume(FOR)){
         if(consume(LPAR)){
             if(expr()){
+            }
+            if(consume(SEMICOLON)){
+                if(expr()){
+                }
                 if(consume(SEMICOLON)){
                     if(expr()){
-                        if(consume(SEMICOLON)){
-                            if(expr()){
-                                if(consume(RPAR)){
-                                    if(stm()){
-                                        return true;
-                                    }
-                                }
-                            }  
+                    }
+                    if(consume(RPAR)){
+                        if(stm()){
+                            return true;
                         }
-                    }  
-                }else if(consume(SEMICOLON)){
-                    if(expr()){
-                        if(consume(SEMICOLON)){
-                            if(expr()){
-                                if(consume(RPAR)){
-                                    if(stm()){
-                                        return true;
-                                    }
-                                }
-                            }  
-                        }
-                    }else if(consume(SEMICOLON)){
-                            if(expr()){
-                                if(consume(RPAR)){
-                                    if(stm()){
-                                        return true;
-                                    }
-                                }
-                            }else if(consume(RPAR)){
-                                    if(stm()){
-                                        return true;
-                                    }
-                                }  
-                        }
+                    }
                 }
-            }    
+            }
+
         }
     }
 
@@ -251,18 +231,15 @@ bool stm(){
 
     if(consume(RETURN)){
         if(expr()){
-            if(consume(SEMICOLON)){
-                return true;
-            }
-        }else if(consume(SEMICOLON)){
-                return true;
-            }
+        }
+        if(consume(SEMICOLON)){
+            return true;
+        }
     }
 
     if(expr()){
-        if(consume(SEMICOLON))
-            return true;
-    }else if(consume(SEMICOLON)){
+    }
+    if(consume(SEMICOLON)){
         return true;
     }
     
@@ -272,11 +249,13 @@ bool stm(){
 //stmCompound: LACC ( varDef | stm )* RACC
 bool stmCompound(){
     if(consume(LACC)){
-        if(varDef() | stm() ){
-            if(consume(RACC)){
-                return true;
+        for(;;){
+            if(varDef() || stm()){
+            }else{
+                break;
             }
-        }else if(consume(RACC)){
+        }
+        if(consume(RACC)){
             return true;
         }
     }
@@ -297,11 +276,16 @@ bool expr(){
 bool exprAssign(){
     if(exprUnary()){
         if(consume(ASSIGN)){
-            if(exprAssign() | exprOr()){
+            if(exprAssign()){
                 return true;
             }
         }
     }
+
+    if(exprOr()){
+        return true;
+    }
+
     return false;
 }
 
@@ -467,16 +451,13 @@ bool exprCast(){
     if(consume(LPAR)){
         if(typeBase()){
             if(arrayDecl()){
-                if(consume(RPAR)){
-                    if(exprCast()){
-                        return true;
-                    }
+            }
+            if(consume(RPAR)){
+                if(exprCast()){
+                    return true;
                 }
-            } else if(consume(RPAR)){
-                    if(exprCast()){
-                        return true;
-                    }
-                }
+            }
+            
         }
     }
 
@@ -505,7 +486,7 @@ bool exprUnary(){
 /*
 exprPostfix: exprPostfix LBRACKET expr RBRACKET | exprPostfix DOT ID | exprPrimary
 		=>exprPostfix: exprPrimary exprPostfixPrim
-	    =>exprPostfixPrim: LBRACKET expr RBRACKET exprPosfixPrim | DOT ID exprPostfixPrim
+	    =>exprPostfixPrim: LBRACKET expr RBRACKET exprPosfixPrim | DOT ID exprPostfixPrim | eps
 */
 bool exprPostfix(){
     if(exprPrimary()){
@@ -539,6 +520,57 @@ bool exprPostfixPrim(){
     return true;
 }
 
+/*
+
+exprPrimary: ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
+| CT_INT | CT_REAL | CT_CHAR | CT_STRING | LPAR expr RPAR
+
+*/
+
 bool exprPrimary(){
+    if(consume(ID)){
+        if(consume(LPAR)){
+            if(expr()){
+                for(;;){
+                    if(cosume(COMMA)){
+                        if(expr()){
+                        
+                        }else{
+                            break;
+                        }
+                    }
+                }
+                if(consume(RPAR)){
+                    return true;
+                }
+            }
+        }
+    }
+
+    if(consume(CT_INT)){
+        return true;
+    }
+
+    if(consume(CT_REAL)){
+        return true;
+    }
+
+    if(consume(CT_CHAR)){
+        return true;
+    }
+
+    if(consume(CT_STRING)){
+        return true;
+    }
+
+    if(consume(LPAR)){
+        if(expr()){
+            if(consume(RPAR)){
+                return true;
+            }
+        }
+    }
+
+    return false;
 
 }

@@ -1,3 +1,4 @@
+//Trohin Victor
 #include "analizorSintactic.h"
 
 int main(){
