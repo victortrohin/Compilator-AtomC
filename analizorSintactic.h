@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdbool.h>
+#include "analizorLexical.h"
 
 Token *iTk; // iteratorul în lista de atomi. Inițial pointează la primul atom dinlistă.
 Token *consumedTk; // atomul care tocmai a fost consumat. Va fi folosit în etapele următoare ale compilatorului
@@ -270,20 +269,50 @@ bool stm(){
     return false;
 }
 
+//stmCompound: LACC ( varDef | stm )* RACC
 bool stmCompound(){
+    if(consume(LACC)){
+        if(varDef() | stm() ){
+            if(consume(RACC)){
+                return true;
+            }
+        }else if(consume(RACC)){
+            return true;
+        }
+    }
 
+    return false;
 }
 
+
+//expr: exprAssign
 bool expr(){
+    if(exprAssign())
+        return true;
 
+    return false;
 }
 
+//exprAssign: exprUnary ASSIGN exprAssign | exprOr
 bool exprAssign(){
-
+    if(exprUnary()){
+        if(consume(ASSIGN)){
+            if(exprAssign() | exprOr()){
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool exprOr(){
+    if(exprAnd()){
+        if(exprOrPrim()){
+            return true;
+        }
+    }
 
+    return false;
 }
 
 // exprOrPrim: OR exprAnd exprOrPrim | ε
@@ -299,46 +328,217 @@ bool exprOrPrim(){
     return true; // ε - exprOrPrim returneaza true chiar dacă nu consumă nimic
 }
 
-
+/*
+exprAnd: exprAnd AND exprEq | exprEq => exprAnd:exprEq exprAndPrim
+									=> exprAndPrim:AND exprEq exprAndPrim|eps
+*/
 bool exprAnd(){
+    if(exprEq()){
+        if(exprAndPrim()){
+            return true;
+        }
+    }
 
+    return false;
 }
+
+bool exprAndPrim(){
+    if(consume(AND)){
+        if(exprEq()){
+            if(exprAndPrim()){
+                return true;
+            }
+        }
+    }
+
+    return true;
+}
+
+/*
+exprEq: exprEq ( EQUAL | NOTEQ ) exprRel | exprRel
+	 => exprEq: exprRel exprEqPrim
+	 => exprEqPrim: ( EQUAL | NOTEQ ) exprRel exprEqPrim | eps
+*/
 
 bool exprEq(){
+    if(exprRel()){
+        if(exprEqPrim()){
+            return true;
+        }
+    }
 
+    return false;
 }
+
+bool exprEqPrim(){
+    if(consume(EQUAL) || cosume(NOTEQ)){
+        if(exprRel()){
+            if(exprEqPrim()){
+                return true;
+            }
+        }
+    }
+
+    return true;
+}
+
+/*
+exprRel: exprRel ( LESS | LESSEQ | GREATER | GREATEREQ ) exprAdd | exprAdd
+	   =>exprRel: exprAdd exprRelPrim
+	   =>exprRelPrim: ( LESS | LESSEQ | GREATER | GREATEREQ ) exprAdd exprRelPrim | eps
+*/
 
 bool exprRel(){
-
+    if(exprAdd()){
+        if(exprRelPrim()){
+            return true;
+        }
+    }
+    return false;
 }
 
+bool exprRelPrim(){
+    if(consume(LESS) || consume(LESSEQ) || consume(GREATER) || consume(GREATEREQ)){
+        if(exprAdd()){
+            if(exprRelPrim){
+                return true;
+            }
+        }
+
+        return true;
+    }
+}
+
+/*
+exprAdd: exprAdd ( ADD | SUB ) exprMul | exprMul
+	  => exprAdd: exprMul exprAddPrim	   
+	  => exprAddPrim: ( ADD | SUB ) exprMul exprAddPrim | eps
+*/
 bool exprAdd(){
-
+    if(exprMul()){
+        if(exprAddPrim()){
+            return true;
+        }
+    }
+    return false;
 }
+
+bool exprAddPrim(){
+    if(consume(ADD) || consume(SUB)){
+        if(exprMul()){
+            if(exprAddPrim()){
+                return true;
+            }
+        }
+    }
+    return true;
+}
+
+/*
+exprMul: exprMul ( MUL | DIV ) exprCast | exprCast
+	  => exprMul: exprCast exprMulPrim
+	  => exprMulPrim: ( MUL | DIV ) exprCast exprMulPrim
+*/
 
 bool exprMul(){
+    if(exprCast()){
+        if(exprMulPrim()){
+            return true;
+        }
+    }
 
+    return false;
 }
 
+bool exprMulPrim(){
+    if(consume(MUL) || consume(DIV)){
+        if(exprCast()){
+            if(exprMulPrim()){
+                return true;
+            }
+        }
+    }
+
+    return true;
+}
+
+//exprCast: LPAR typeBase arrayDecl? RPAR exprCast | exprUnary
 bool exprCast(){
+    if(consume(LPAR)){
+        if(typeBase()){
+            if(arrayDecl()){
+                if(consume(RPAR)){
+                    if(exprCast()){
+                        return true;
+                    }
+                }
+            } else if(consume(RPAR)){
+                    if(exprCast()){
+                        return true;
+                    }
+                }
+        }
+    }
 
+    if(exprUnary())
+        return true;
+
+    return false;
 }
 
+//exprUnary: ( SUB | NOT ) exprUnary | exprPostfix
 bool exprUnary(){
+    if(consume(SUB) || consume(NOT)){
+        if(exprUnary()){
+            return true;
+        }
+    }
 
+    if(exprPostfix()){
+        return true;
+    }
+
+    return false;
 }
 
-bool exprPostfix(){
 
+/*
+exprPostfix: exprPostfix LBRACKET expr RBRACKET | exprPostfix DOT ID | exprPrimary
+		=>exprPostfix: exprPrimary exprPostfixPrim
+	    =>exprPostfixPrim: LBRACKET expr RBRACKET exprPosfixPrim | DOT ID exprPostfixPrim
+*/
+bool exprPostfix(){
+    if(exprPrimary()){
+        if(exprPostfixPrim()){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool exprPostfixPrim(){
+    if(consume(LBRACKET)){
+        if(expr()){
+            if(consume(RBRACKET)){
+                if(exprPostfixPrim()){
+                    return true;
+                }
+            }
+        }
+    }
+
+    if(consume(DOT)){
+        if(consume(ID)){
+            if(exprPostfixPrim()){
+                return true;
+            }
+        }
+    }
+
+    return true;
 }
 
 bool exprPrimary(){
 
-}
-
-
-int main(int argc, char const *argv[])
-{
-    /* code */
-    return 0;
 }
