@@ -8,7 +8,9 @@ int main(){
     do{
         codeTk = getNextToken();
     }while(codeTk != END);
-    showAtoms();
+	showAtoms();
+	printf("_______________________________________________________________________________________________________________\n");
+	unit();
 	eliberareMemorie(tokens);
 	return 0;
 }
